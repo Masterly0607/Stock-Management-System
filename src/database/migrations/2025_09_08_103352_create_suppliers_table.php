@@ -11,15 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('suppliers', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('phone', 30)->nullable();
-    $table->string('email')->nullable();
-    $table->string('address')->nullable();
-    $table->timestamps();
-});
-
+        Schema::create('suppliers', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('name')->unique();
+            $table->string('contact_name')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('email')->nullable();
+            $table->string('address')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 
     /**

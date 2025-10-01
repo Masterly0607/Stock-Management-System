@@ -11,16 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('stock_counts', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained();
-    $table->string('count_no')->unique();
-    $table->enum('status', ['draft','posted'])->default('draft');
-    $table->dateTime('counted_at')->nullable();
-    $table->string('note')->nullable();
-    $table->timestamps();
-});
-
+        Schema::create('stock_counts', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->decimal('counted_qty', 14, 3);
+            $table->timestamp('counted_at');
+            $table->timestamps();
+        });
     }
 
     /**

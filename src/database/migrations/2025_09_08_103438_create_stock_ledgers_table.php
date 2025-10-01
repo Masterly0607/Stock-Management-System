@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('stock_ledger', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained();
-    $table->foreignId('product_id')->constrained();
-    $table->string('ref_type', 40);  // purchase, order, transfer_in, transfer_out, adjustment, stock_count_post
-    $table->unsignedBigInteger('ref_id');
-    $table->enum('direction', ['IN','OUT']);
-    $table->decimal('qty', 12, 3);
-    $table->decimal('unit_cost', 12, 2)->nullable();
-    $table->timestamps();
-    $table->index(['branch_id','product_id','created_at']);
-});
-
+        Schema::create('stock_ledgers', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->morphs('source'); // source_id, source_type (Purchase, Order, Transfer, Adjustment, Count)
+            $table->decimal('qty_change', 14, 3); // + IN, - OUT
+            $table->string('reason', 30); // purchase, order, transfer_in, transfer_out, adjust, count
+            $table->timestamp('occurred_at');
+            $table->timestamps();
+            $table->index(['branch_id', 'product_id']);
+        });
     }
 
     /**

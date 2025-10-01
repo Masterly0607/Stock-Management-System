@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('districts', function (Blueprint $table) {
+        Schema::create('audit_logs', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->foreignId('province_id')->constrained()->cascadeOnDelete();
-            $table->string('name');
-            $table->string('code', 10)->nullable();
-            $table->timestamps();
-            $table->unique(['province_id', 'name']);
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('action');
+            $table->morphs('auditable');
+            $table->json('changes')->nullable();
+            $table->timestamps();;
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('districts');
+        Schema::dropIfExists('audit_logs');
     }
 };

@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('purchases', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained();
-    $table->foreignId('supplier_id')->constrained();
-    $table->string('invoice_no')->unique();
-    $table->enum('status', ['draft','posted','cancelled'])->default('draft');
-    $table->dateTime('purchased_at')->nullable();
-    $table->decimal('total', 12, 2)->default(0);
-    $table->decimal('paid_amount', 12, 2)->default(0);
-    $table->timestamps();
-    $table->index(['branch_id','status','purchased_at']);
-});
-
+        Schema::create('purchases', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('supplier_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('code', 30)->unique();
+            $table->date('purchased_at');
+            $table->decimal('total', 14, 2)->default(0);
+            $table->string('status', 20)->default('completed'); // draft/completed/cancelled
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 
     /**

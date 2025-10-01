@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('order_items', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('order_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('product_id')->constrained();
-    $table->decimal('qty', 12, 3);
-    $table->decimal('unit_price', 12, 2);
-    $table->decimal('line_total', 12, 2);
-    $table->timestamps();
-});
-
+        Schema::create('order_items', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->foreignId('order_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->decimal('qty', 14, 3);
+            $table->decimal('unit_price', 12, 2);
+            $table->decimal('subtotal', 14, 2);
+            $table->timestamps();
+            $table->unique(['order_id', 'product_id']);
+        });
     }
 
     /**

@@ -2,23 +2,22 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CategoriesSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-          $now = now();
+        $now = now();
+        $cats = collect(['Beverages', 'Snacks', 'Household'])->map(fn($n) => [
+            'name' => $n,
+            'slug' => Str::slug($n),
+            'created_at' => $now,
+            'updated_at' => $now
+        ])->all();
 
-        DB::table('categories')->upsert([
-            ['name' => 'Skincare',  'slug' => 'skincare',  'created_at' => $now, 'updated_at' => $now],
-            ['name' => 'Makeup',    'slug' => 'makeup',    'created_at' => $now, 'updated_at' => $now],
-            ['name' => 'Fragrance', 'slug' => 'fragrance', 'created_at' => $now, 'updated_at' => $now],
-        ], ['slug'], ['updated_at']);
+        DB::table('categories')->upsert($cats, ['slug'], ['name', 'updated_at']);
     }
 }

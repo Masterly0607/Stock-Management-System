@@ -2,55 +2,20 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProductsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-          $now = now();
-
-        // Get category IDs by slug
-        $skincareId  = DB::table('categories')->where('slug', 'skincare')->value('id');
-        $makeupId    = DB::table('categories')->where('slug', 'makeup')->value('id');
-        $fragranceId = DB::table('categories')->where('slug', 'fragrance')->value('id');
+        $now = now();
+        $cat = DB::table('categories')->where('slug', 'beverages')->value('id');
 
         DB::table('products')->upsert([
-            [
-                'sku'         => 'SKU-001',
-                'name'        => 'Aloe Vera Gel',
-                'category_id' => $skincareId,
-                'unit'        => 'pcs',
-                'price'       => 5.50,
-                'is_active'   => true,
-                'created_at'  => $now,
-                'updated_at'  => $now,
-            ],
-            [
-                'sku'         => 'SKU-002',
-                'name'        => 'Lip Balm',
-                'category_id' => $makeupId,
-                'unit'        => 'pcs',
-                'price'       => 3.20,
-                'is_active'   => true,
-                'created_at'  => $now,
-                'updated_at'  => $now,
-            ],
-            [
-                'sku'         => 'SKU-003',
-                'name'        => 'Floral Mist',
-                'category_id' => $fragranceId,
-                'unit'        => 'pcs',
-                'price'       => 8.90,
-                'is_active'   => true,
-                'created_at'  => $now,
-                'updated_at'  => $now,
-            ],
-        ], ['sku'], ['name','category_id','unit','price','is_active','updated_at']);
+            ['sku' => 'COLA-330', 'name' => 'Cola 330ml', 'slug' => Str::slug('Cola 330ml'), 'category_id' => $cat, 'unit' => 'can', 'price' => 0.80, 'created_at' => $now, 'updated_at' => $now],
+            ['sku' => 'WATER-500', 'name' => 'Water 500ml', 'slug' => Str::slug('Water 500ml'), 'category_id' => $cat, 'unit' => 'bottle', 'price' => 0.30, 'created_at' => $now, 'updated_at' => $now],
+        ], ['sku'], ['name', 'slug', 'category_id', 'unit', 'price', 'updated_at']);
     }
 }

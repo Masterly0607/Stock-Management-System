@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('branches', function (Blueprint $table) {
-    $table->id();
-    $table->string('slug')->unique();
-    $table->string('name');
-    $table->foreignId('province_id')->constrained();
-    $table->foreignId('district_id')->constrained();
-    $table->string('address')->nullable();
-    $table->string('phone', 30)->nullable();
-    $table->timestamps();
-});
-
+        Schema::create('branches', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('name')->unique();
+            $table->string('code', 20)->unique();
+            $table->foreignId('province_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('district_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('address')->nullable();
+            $table->string('phone')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 
     /**

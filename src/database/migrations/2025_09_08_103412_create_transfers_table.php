@@ -11,17 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-     Schema::create('transfers', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('from_branch_id')->constrained('branches');
-    $table->foreignId('to_branch_id')->constrained('branches');
-    $table->string('transfer_no')->unique();
-    $table->enum('status', ['draft','sent','received','cancelled'])->default('draft');
-    $table->dateTime('transferred_at')->nullable();
-    $table->string('notes')->nullable();
-    $table->timestamps();
-});
-
+        Schema::create('transfers', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->foreignId('from_branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->foreignId('to_branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->string('code', 30)->unique();
+            $table->date('transferred_at');
+            $table->string('status', 20)->default('completed');
+            $table->timestamps();
+        });
     }
 
     /**

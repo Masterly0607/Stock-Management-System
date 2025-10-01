@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stock_adjustments', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained();
-    $table->enum('reason', ['damage','expired','loss','correction']);
-    $table->string('note')->nullable();
-    $table->dateTime('adjusted_at');
-    $table->timestamps();
-});
-
+            $table->bigIncrements('id');
+            $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->decimal('qty_change', 14, 3);
+            $table->string('note')->nullable();
+            $table->timestamp('adjusted_at');
+            $table->timestamps();
+        });
     }
 
     /**

@@ -12,16 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-    $table->id();
-    $table->string('sku')->unique();
-    $table->string('name');
-    $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
-    $table->string('unit', 20)->default('pcs');
-    $table->decimal('price', 12, 2)->default(0);
-    $table->boolean('is_active')->default(true);
-    $table->timestamps();
-});
-
+            $table->bigIncrements('id');
+            $table->string('sku', 50)->unique();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('unit', 20)->default('pcs');
+            $table->decimal('price', 12, 2)->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['name', 'category_id']);
+        });
     }
 
     /**

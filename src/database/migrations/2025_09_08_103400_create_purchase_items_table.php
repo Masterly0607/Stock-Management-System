@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('purchase_items', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('purchase_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('product_id')->constrained();
-    $table->decimal('qty', 12, 3);
-    $table->decimal('unit_cost', 12, 2);
-    $table->decimal('line_total', 12, 2);
-    $table->timestamps();
-});
-
+            $table->bigIncrements('id');
+            $table->foreignId('purchase_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->decimal('qty', 14, 3);
+            $table->decimal('unit_price', 12, 2);
+            $table->decimal('subtotal', 14, 2);
+            $table->timestamps();
+            $table->unique(['purchase_id', 'product_id']);
+        });
     }
 
     /**
