@@ -3,23 +3,24 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Province extends Model
 {
-    protected $fillable = ['name'];
+    use HasFactory;
+
+    protected $fillable = ['name', 'code'];
 
     public function districts()
     {
         return $this->hasMany(District::class);
     }
-
     public function branches()
     {
         return $this->hasMany(Branch::class);
     }
-
-    public function mainBranch()
+    public function prices()
     {
-        return $this->hasOne(Branch::class)->whereNull('district_id');
+        return $this->hasMany(Price::class);
     }
 }

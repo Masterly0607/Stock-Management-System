@@ -14,9 +14,14 @@ return new class extends Migration
         // Goal: Who we buy from. Example: Supplier A, Supplier B.
         Schema::create('suppliers', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name');
+            $table->string('code')->unique();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
+            $table->string('tax_id')->nullable();
+            $table->string('contact_name')->nullable();
+            $table->string('address')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

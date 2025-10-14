@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Goal: Store province names for branches/distributors. Example: Phnom Penh, Siem Reap.
-        Schema::create('provinces', function (Blueprint $table) {
+        Schema::create('units', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code')->unique();
+            $table->string('symbol')->nullable();
+            $table->integer('base_ratio')->default(1);
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('provinces');
+        Schema::dropIfExists('units');
     }
 };

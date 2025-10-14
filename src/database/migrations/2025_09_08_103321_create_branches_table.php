@@ -14,10 +14,11 @@ return new class extends Migration
         // Goal: Each company location (HQ or branch). Example: HQ, Phnom Penh Branch.
         Schema::create('branches', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
             $table->string('name');
-            $table->foreignId('province_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('district_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('code')->unique();
+            $table->enum('type', ['HQ', 'PROVINCE', 'DISTRICT']);
+            $table->foreignId('province_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('district_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

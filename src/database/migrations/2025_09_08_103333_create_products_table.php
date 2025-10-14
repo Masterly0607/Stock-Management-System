@@ -14,15 +14,15 @@ return new class extends Migration
         // Goal: Actual items sold/bought. Example: SKU SH-001, “Shampoo 250ml”.
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('sku')->unique();
             $table->string('name');
-            $table->foreignId('category_id')->constrained('product_categories')->cascadeOnDelete();
-            $table->string('unit')->default('pcs');
-            $table->decimal('base_price', 12, 2)->default(0);
-            $table->unsignedInteger('min_stock')->default(0);
+            $table->string('sku')->unique();
+            $table->string('barcode')->nullable();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('unit_base_id')->nullable()->constrained('units')->nullOnDelete();
+            $table->string('brand')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            $table->index(['category_id', 'is_active']);
+            $table->index(['category_id', 'unit_base_id']);
         });
     }
 

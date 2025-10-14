@@ -5,23 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class StockLevel extends Model
+class AdjustmentItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['branch_id', 'product_id', 'unit_id', 'on_hand', 'reserved'];
+    protected $fillable = ['adjustment_id', 'product_id', 'unit_id', 'qty_delta', 'note'];
 
     protected $casts = [
-        'branch_id' => 'integer',
-        'product_id' => 'integer',
-        'unit_id'   => 'integer',
-        'on_hand'   => 'decimal:2',
-        'reserved'  => 'decimal:2',
+        'adjustment_id' => 'integer',
+        'product_id'    => 'integer',
+        'unit_id'       => 'integer',
+        'qty_delta'     => 'decimal:2',
     ];
 
-    public function branch()
+    public function adjustment()
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Adjustment::class);
     }
     public function product()
     {

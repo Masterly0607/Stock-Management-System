@@ -5,26 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class TransferItem extends Model
+class Price extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['transfer_id', 'product_id', 'unit_id', 'qty'];
+    protected $fillable = ['product_id', 'province_id', 'unit_id', 'price', 'currency', 'starts_at', 'ends_at', 'is_active'];
 
     protected $casts = [
-        'transfer_id' => 'integer',
         'product_id'  => 'integer',
+        'province_id' => 'integer',
         'unit_id'     => 'integer',
-        'qty'         => 'decimal:2',
+        'price'       => 'decimal:2',
+        'is_active'   => 'boolean',
+        'starts_at'   => 'datetime',
+        'ends_at'     => 'datetime',
     ];
 
-    public function transfer()
-    {
-        return $this->belongsTo(Transfer::class);
-    }
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+    public function province()
+    {
+        return $this->belongsTo(Province::class);
     }
     public function unit()
     {
