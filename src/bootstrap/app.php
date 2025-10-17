@@ -11,7 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([]);
+        // alias() → gives you a short name (for later use if needed)
+
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

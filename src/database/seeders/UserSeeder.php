@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
 
         $super = User::firstOrCreate(['email' => 'superadmin@example.com'], [
             'name' => 'Super Admin',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('1234'),
             'branch_id' => $hqId,
             'status' => true,
         ]);
@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
 
         $admin = User::firstOrCreate(['email' => 'admin@example.com'], [
             'name' => 'Province Admin',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('1234'),
             'branch_id' => $ppProvId,
             'status' => true,
         ]);
@@ -33,7 +33,7 @@ class UserSeeder extends Seeder
 
         $dist = User::firstOrCreate(['email' => 'distributor@example.com'], [
             'name' => 'Daun Penh Distributor',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('1234'),
             'branch_id' => $dpId,
             'status' => true,
         ]);
