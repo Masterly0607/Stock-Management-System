@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->unique();
             $table->string('symbol')->nullable();
-            $table->integer('base_ratio')->default(1);
+            $table->decimal('base_ratio', 12, 6)->default(1);
             $table->timestamps();
         });
     }

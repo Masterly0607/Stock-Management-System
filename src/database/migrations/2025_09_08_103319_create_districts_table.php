@@ -14,10 +14,11 @@ return new class extends Migration
         # Goal: More detail under provinces. Example: Phnom Penh → Chamkar Mon, Daun Penh.
         Schema::create('districts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('province_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('province_id')->constrained('provinces')->restrictOnDelete();
             $table->string('name');
-            $table->string('code')->unique();
+            $table->string('code');
             $table->timestamps();
+            $table->unique(['province_id', 'name']);
         });
     }
 

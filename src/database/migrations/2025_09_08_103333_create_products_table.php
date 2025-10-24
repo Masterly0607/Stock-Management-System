@@ -14,15 +14,16 @@ return new class extends Migration
         // Goal: Actual items sold/bought. Example: SKU SH-001, “Shampoo 250ml”.
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('sku')->unique();
+            $table->foreignId('category_id')->constrained('categories')->restrictOnDelete();
+            $table->foreignId('unit_id')->constrained('units')->restrictOnDelete(); // base unit
+            $table->string('sku')->unique(); // sku = a unique code you create for each product. Used for fast product lookup, barcoding, or reporting.
             $table->string('barcode')->nullable();
-            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('unit_base_id')->nullable()->constrained('units')->nullOnDelete();
-            $table->string('brand')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('name');
+            $table->string('brand')->nullable(); // brand = The brand or manufacturer name
+            $table->boolean('is_active')->default(true); // true = can be sold/purchased, false = discontinued or hidden from sale. Keeps your product list clean without deleting old items.
             $table->timestamps();
-            $table->index(['category_id', 'unit_base_id']);
+            $table->index(['category_id', 'unit_id']); // SELECT * FROM products WHERE category_id = 3; with index: Database instantly finds rows 3 and 4 (Rice, Sugar) using the index instead of scanning the whole table.
+
         });
     }
 

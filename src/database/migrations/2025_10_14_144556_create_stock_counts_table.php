@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('settings', function (Blueprint $table) {
+        Schema::create('stock_counts', function (Blueprint $table) {
             $table->id();
-            $table->string('key')->unique();
-            $table->text('value')->nullable();
+            $table->foreignId('branch_id')->constrained('branches')->restrictOnDelete();
+            $table->enum('status', ['DRAFT', 'POSTED'])->default('DRAFT');
+            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('settings');
+        Schema::dropIfExists('stock_counts');
     }
 };

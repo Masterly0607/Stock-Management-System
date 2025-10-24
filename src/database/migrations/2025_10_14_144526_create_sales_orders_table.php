@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('sales_orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->string('customer_name')->nullable();
-            $table->enum('status', ['DRAFT', 'POSTED', 'CANCELLED'])->default('DRAFT');
+            $table->foreignId('branch_id')->constrained('branches')->restrictOnDelete();
+            $table->string('customer_name');
+            $table->enum('status', ['DRAFT', 'CONFIRMED', 'PAID', 'DELIVERED', 'CANCELLED'])->default('DRAFT');
             $table->boolean('requires_prepayment')->default(true);
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->string('currency', 5)->default('USD');
+            $table->string('currency', 3)->default('USD');
             $table->timestamp('posted_at')->nullable();
             $table->foreignId('posted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+            $table->index(['branch_id', 'status']);
         });
     }
 

@@ -13,13 +13,11 @@ return new class extends Migration
     {
         Schema::create('stock_requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('requested_by_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('request_branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->foreignId('source_branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'])->default('PENDING');
-            $table->timestamp('requested_at')->nullable();
-            $table->timestamp('approved_at')->nullable();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('requested_by_user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('request_branch_id')->constrained('branches')->restrictOnDelete();
+            $table->foreignId('source_branch_id')->constrained('branches')->restrictOnDelete(); // HQ/Admin
+            $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'FULFILLED'])->default('PENDING');
+            $table->text('note')->nullable();
             $table->timestamps();
         });
     }

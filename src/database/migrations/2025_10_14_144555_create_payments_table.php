@@ -13,13 +13,14 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sales_order_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('sales_order_id')->constrained('sales_orders')->cascadeOnDelete();
             $table->decimal('amount', 12, 2);
-            $table->string('currency', 5)->default('USD');
-            $table->string('method')->nullable();
-            $table->timestamp('paid_at')->nullable();
-            $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('currency', 3)->default('USD');
+            $table->enum('method', ['CASH', 'BANK', 'WALLET'])->default('CASH');
+            $table->timestamp('paid_at');
+            $table->foreignId('received_by')->constrained('users')->restrictOnDelete();
             $table->timestamps();
+            $table->index('sales_order_id');
         });
     }
 

@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('adjustment_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('adjustment_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('unit_id')->constrained()->cascadeOnDelete();
-            $table->decimal('qty_delta', 12, 2);
+            $table->foreignId('adjustment_id')->constrained('adjustments')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->restrictOnDelete();
+            $table->foreignId('unit_id')->constrained('units')->restrictOnDelete();
+            $table->decimal('qty_delta', 18, 3); // +/- qty
             $table->string('note')->nullable();
             $table->timestamps();
+            $table->unique(['adjustment_id', 'product_id', 'unit_id']);
         });
     }
 

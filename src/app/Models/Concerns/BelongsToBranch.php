@@ -2,20 +2,16 @@
 
 namespace App\Models\Concerns;
 
+use App\Models\Branch;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * Adds a reusable branch() relationship for models that have a branch_id.
+ */
 trait BelongsToBranch
 {
-  public static function bootBelongsToBranch(): void
+  public function branch(): BelongsTo
   {
-    static::creating(function ($m) {
-      if (auth()->check() && empty($m->branch_id)) {
-        $m->branch_id = auth()->user()->branch_id;
-      }
-    });
-  }
-  public function scopeForMyBranch($q)
-  {
-    $u = auth()->user();
-    if (!$u || $u->hasRole('Super Admin')) return $q;
-    return $q->where($q->getModel()->getTable() . '.branch_id', $u->branch_id);
+    return $this->belongsTo(Branch::class);
   }
 }

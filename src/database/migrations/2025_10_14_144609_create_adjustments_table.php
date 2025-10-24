@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('adjustments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->enum('reason', ['STOCK_TAKE', 'DAMAGE', 'LOSS', 'CORRECTION']);
+            $table->foreignId('branch_id')->constrained('branches')->restrictOnDelete();
+            $table->enum('reason', ['DAMAGE', 'EXPIRE', 'MANUAL']);
             $table->enum('status', ['DRAFT', 'POSTED'])->default('DRAFT');
             $table->timestamp('posted_at')->nullable();
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();

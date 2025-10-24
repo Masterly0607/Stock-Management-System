@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('transfers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('from_branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->foreignId('to_branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->foreignId('from_branch_id')->constrained('branches')->restrictOnDelete();
+            $table->foreignId('to_branch_id')->constrained('branches')->restrictOnDelete();
             $table->enum('status', ['DRAFT', 'DISPATCHED', 'RECEIVED', 'CANCELLED'])->default('DRAFT');
-            $table->timestamp('dispatched_at')->nullable();
-            $table->timestamp('received_at')->nullable();
+            $table->foreignId('stock_request_id')->nullable()->constrained('stock_requests')->nullOnDelete();
             $table->string('ref_no')->nullable();
             $table->timestamps();
+            $table->index(['from_branch_id', 'to_branch_id']);
         });
     }
 

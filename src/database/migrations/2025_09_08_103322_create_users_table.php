@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->foreignId('branch_id')->nullable()->constrained('branches')->cascadeOnDelete();
-            $table->boolean('status')->default(true);
+            $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->rememberToken();
 
