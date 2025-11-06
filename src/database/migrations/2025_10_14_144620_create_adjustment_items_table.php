@@ -16,10 +16,15 @@ return new class extends Migration
             $table->foreignId('adjustment_id')->constrained('adjustments')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $table->foreignId('unit_id')->constrained('units')->restrictOnDelete();
-            $table->decimal('qty_delta', 18, 3); // +/- qty
+
+            // Positive = add stock, Negative = subtract stock
+            $table->decimal('qty_delta', 18, 3);
             $table->string('note')->nullable();
             $table->timestamps();
+
             $table->unique(['adjustment_id', 'product_id', 'unit_id']);
+            $table->index(['adjustment_id']);
+            $table->index(['product_id']);
         });
     }
 

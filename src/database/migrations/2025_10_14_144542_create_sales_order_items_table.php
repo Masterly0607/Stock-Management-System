@@ -20,7 +20,11 @@ return new class extends Migration
             $table->decimal('unit_price', 12, 2);
             $table->decimal('line_total', 12, 2);
             $table->timestamps();
+
             $table->unique(['sales_order_id', 'product_id', 'unit_id']);
+            // Helpful for queries/joins:
+            $table->index(['sales_order_id']);
+            $table->index(['product_id']);
         });
     }
 

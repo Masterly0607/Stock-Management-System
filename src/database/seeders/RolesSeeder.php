@@ -9,10 +9,8 @@ class RolesSeeder extends Seeder
 {
     public function run(): void
     {
-        Role::query()->upsert([
-            ['name' => 'Super Admin', 'guard_name' => 'web'],
-            ['name' => 'Admin', 'guard_name' => 'web'],
-            ['name' => 'Distributor', 'guard_name' => 'web'],
-        ], ['name'], ['guard_name']);
+        foreach (['Super Admin', 'Admin', 'Distributor'] as $name) {
+            Role::findOrCreate($name, 'web'); // idempotent & DB-agnostic
+        }
     }
 }

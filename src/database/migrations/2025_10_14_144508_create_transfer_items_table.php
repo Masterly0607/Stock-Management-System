@@ -18,7 +18,10 @@ return new class extends Migration
             $table->foreignId('unit_id')->constrained('units')->restrictOnDelete();
             $table->decimal('qty', 18, 3);
             $table->timestamps();
+
             $table->unique(['transfer_id', 'product_id', 'unit_id']);
+            $table->index(['transfer_id']);
+            $table->index(['product_id']);
         });
     }
 
