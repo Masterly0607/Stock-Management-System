@@ -6,6 +6,7 @@ use App\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use DomainException;
+use App\Services\AuditLogger;
 
 class SalesService
 {
@@ -32,7 +33,7 @@ class SalesService
       throw new DomainException('Order must be CONFIRMED or PAID to receive payments.');
     }
 
-    $payment = $order->payments()->create([
+    $order->payments()->create([
       'amount'      => $amount,
       'currency'    => $order->currency ?? 'USD',
       'method'      => $method,
@@ -44,7 +45,7 @@ class SalesService
       $order->update(['status' => 'PAID']);
     }
 
-    return $payment;
+    return $order->fresh();
   }
 
   public function deliver(SalesOrder $order, ?int $userId = null): SalesOrder
@@ -55,28 +56,17 @@ class SalesService
 
     $lines = $order->items()->get();
 
-    // Decide which quantity column stock_levels uses
-    $qtyCol = Schema::hasColumn('stock_levels', 'on_hand') ? 'on_hand'
-      : (Schema::hasColumn('stock_levels', 'qty') ? 'qty'
-        : (Schema::hasColumn('stock_levels', 'quantity') ? 'quantity' : null));
-
-    if (!$qtyCol) {
-      throw new DomainException('stock_levels table has no quantity column (expected on_hand/qty/quantity).');
-    }
-
-    // Check availability (works with or without stock_levels.unit_id)
+    // availability check supports on_hand or qty schema
     foreach ($lines as $line) {
-      $where = [
-        'branch_id'  => $order->branch_id,
-        'product_id' => $line->product_id,
-      ];
-
+      $where = ['branch_id' => $order->branch_id, 'product_id' => $line->product_id];
       if (Schema::hasColumn('stock_levels', 'unit_id') && !is_null($line->unit_id)) {
         $where['unit_id'] = $line->unit_id;
       }
+      $available = DB::table('stock_levels')->where($where)->value(
+        Schema::hasColumn('stock_levels', 'on_hand') ? 'on_hand' : 'qty'
+      ) ?? 0;
 
-      $available = (float) (DB::table('stock_levels')->where($where)->value($qtyCol) ?? 0);
-      if ($available < (float) $line->qty) {
+      if ((float) $available < (float) $line->qty) {
         throw new DomainException("Insufficient stock for product {$line->product_id}");
       }
     }
@@ -96,11 +86,9 @@ class SalesService
           'source_id'   => $order->id,
           'source_line' => $line->id ?? 0,
         ];
-
         if (Schema::hasColumn('inventory_ledger', 'unit_id') && !is_null($line->unit_id)) {
           $payload['unit_id'] = $line->unit_id;
         }
-
         $this->ledger->post($payload);
       }
 
@@ -108,6 +96,23 @@ class SalesService
         'status'    => 'DELIVERED',
         'posted_at' => now(),
         'posted_by' => $userId,
+      ]);
+
+      // 🔐 write audit
+      AuditLogger::log('sales.delivered', [
+        'user_id'     => $userId,
+        'entity_type' => 'sales_orders',
+        'entity_id'   => $order->id,
+        'payload'     => [
+          'branch_id'    => $order->branch_id,
+          'total_amount' => $order->total_amount,
+          'lines'        => $lines->map(fn($l) => [
+            'product_id' => $l->product_id,
+            'qty'        => $l->qty,
+            'unit_id'    => $l->unit_id,
+            'line_total' => $l->line_total,
+          ])->values(),
+        ],
       ]);
     });
 
