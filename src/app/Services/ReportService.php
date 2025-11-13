@@ -22,7 +22,7 @@ class ReportService
     $hasQty    = Schema::hasColumn($table, 'qty');
     $hasRes    = Schema::hasColumn($table, 'reserved');
 
-    $amountCol = $hasOnHand ? 'on_hand' : ($hasQty ? 'qty' : null);
+    $amountCol = $hasQty ? 'qty' : ($hasOnHand ? 'on_hand' : null);
     if (!$amountCol) {
       return collect(); // No valid qty column
     }
@@ -122,40 +122,45 @@ class ReportService
   }
 
   /**
-   * ✅ Fixed: Dynamic low stock query (works with qty OR on_hand)
+   *  Fixed: Dynamic low stock query (works with qty OR on_hand)
    */
   public function lowStockQuery(?int $branchId = null, int $threshold = 50): Builder
   {
-    $qtyCol = Schema::hasColumn('stock_levels', 'on_hand')
-      ? 'stock_levels.on_hand'
-      : 'stock_levels.qty';
-    $resCol = Schema::hasColumn('stock_levels', 'reserved')
-      ? 'COALESCE(stock_levels.reserved, 0)'
-      : '0';
-    $avail = "($qtyCol - $resCol)";
+    // Work with either qty or on_hand
+    $hasQty    = Schema::hasColumn('stock_levels', 'qty');
+    $hasOnHand = Schema::hasColumn('stock_levels', 'on_hand');
 
-    return StockLevel::query()
+    $qtyCol = $hasQty
+      ? 'stock_levels.qty'
+      : ($hasOnHand ? 'stock_levels.on_hand' : null);
+
+    if (! $qtyCol) {
+      throw new \DomainException('stock_levels needs a qty or on_hand column.');
+    }
+
+    return \App\Models\StockLevel::query()
       ->join('branches', 'branches.id', '=', 'stock_levels.branch_id')
       ->join('products', 'products.id', '=', 'stock_levels.product_id')
       ->leftJoin('units', 'units.id', '=', 'stock_levels.unit_id')
       ->when($branchId, fn($q) => $q->where('stock_levels.branch_id', $branchId))
       ->selectRaw("
-                stock_levels.id,
-                branches.name  AS branch,
-                products.name  AS product,
-                COALESCE(units.name, '-') AS unit,
-                $qtyCol        AS on_hand,
-                $resCol        AS reserved,
-                $avail         AS available,
-                ?              AS threshold
-            ", [$threshold])
-      ->whereRaw("$avail < ?", [$threshold])
+            stock_levels.id,
+            branches.name  AS branch,
+            products.name  AS product,
+            COALESCE(units.name, '-') AS unit,
+            $qtyCol        AS on_hand,
+            COALESCE(stock_levels.reserved, 0) AS reserved,
+            ($qtyCol - COALESCE(stock_levels.reserved, 0)) AS available,
+            ? AS threshold
+        ", [$threshold])
+      ->whereRaw("($qtyCol - COALESCE(stock_levels.reserved, 0)) < ?", [$threshold])
       ->orderBy('branches.name')
       ->orderBy('products.name');
   }
 
+
   /**
-   * ✅ Fixed: low stock CSV export (auto-detects correct qty column)
+   *  Fixed: low stock CSV export (auto-detects correct qty column)
    */
   public function lowStockCsv(?int $branchId = null, int $threshold = 50): string
   {

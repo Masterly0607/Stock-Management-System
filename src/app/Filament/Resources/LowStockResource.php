@@ -16,7 +16,7 @@ class LowStockResource extends BaseResource
     protected static ?string $navigationGroup = 'Reports';
     protected static ?int    $navigationSort  = 10;
     protected static ?string $navigationLabel = 'Low Stock';
-    protected static ?string $slug = 'low-stock';
+    protected static ?string $slug            = 'low-stock';
 
     public static function getModelLabel(): string
     {
@@ -31,7 +31,8 @@ class LowStockResource extends BaseResource
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['Admin', 'Super Admin']) ?? false;
+        // SA, Admin, Distributor can see this report
+        return $u?->hasAnyRole(['Super Admin', 'Admin', 'Distributor']) ?? false;
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -39,87 +40,138 @@ class LowStockResource extends BaseResource
         return static::canViewAny();
     }
 
-    // 🔹 Base query — only products where Available < 50
+    /**
+     * Base query: only rows where Available < 50,
+     * with branch-scoping:
+     *  - SA: all branches
+     *  - Admin: their province (province + its districts)
+     *  - Distributor: only their own branch
+     */
     public static function getEloquentQuery(): Builder
     {
+        // Figure out which columns are used on stock_levels
         $qtyCol = Schema::hasColumn('stock_levels', 'on_hand')
             ? 'stock_levels.on_hand'
-            : 'stock_levels.qty';
+            : (Schema::hasColumn('stock_levels', 'qty')
+                ? 'stock_levels.qty'
+                : 'stock_levels.quantity');
+
         $resCol = Schema::hasColumn('stock_levels', 'reserved')
             ? 'COALESCE(stock_levels.reserved, 0)'
             : '0';
-        $avail  = "($qtyCol - $resCol)";
 
-        return StockLevel::query()
-            ->join('branches', 'branches.id', '=', 'stock_levels.branch_id')
-            ->join('products', 'products.id', '=', 'stock_levels.product_id')
-            ->leftJoin('units', 'units.id', '=', 'stock_levels.unit_id')
-            ->whereRaw("CAST($avail AS DECIMAL(12,3)) < 50") //  Always filter below 50
-            ->selectRaw("
-                stock_levels.id,
-                branches.name  AS branch,
-                products.name  AS product,
-                COALESCE(units.name, '-') AS unit,
-                $qtyCol        AS on_hand,
-                $resCol        AS reserved,
-                $avail         AS available
-            ");
+        $availExpr = "($qtyCol - $resCol)";
+
+        $query = StockLevel::query()
+            ->with(['branch', 'product.baseUnit', 'unit'])
+            ->whereRaw("$availExpr < 50"); // threshold
+
+        $user = auth()->user();
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // Super Admin: see everything
+        if ($user->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        // Load user's branch (province or district)
+        $branch = $user->relationLoaded('branch')
+            ? $user->branch
+            : $user->branch()->first();
+
+        // Province Admin: see their province + all its districts
+        if ($user->hasRole('Admin') && $branch && $branch->province_id) {
+            return $query->whereHas('branch', function (Builder $b) use ($branch) {
+                $b->where('province_id', $branch->province_id);
+            });
+        }
+
+        // Distributor: only own branch
+        if ($user->hasRole('Distributor') && $user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        // Fallback: nothing
+        return $query->whereRaw('1 = 0');
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('branch')
+                // Branch name (from relationship)
+                Tables\Columns\TextColumn::make('branch.name')
                     ->label('Branch')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('product')
+                // Product name
+                Tables\Columns\TextColumn::make('product.name')
                     ->label('Product')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('unit')
-                    ->label('Unit'),
+                // Unit label: unit.name OR product.baseUnit.name OR '-'
+                Tables\Columns\TextColumn::make('unit_label')
+                    ->label('Unit')
+                    ->state(function ($record) {
+                        return $record->unit?->name
+                            ?? $record->product?->baseUnit?->name
+                            ?? '-';
+                    }),
 
+                // On hand
                 Tables\Columns\TextColumn::make('on_hand')
                     ->label('On Hand')
-                    ->numeric(3)
+                    ->state(function ($record) {
+                        if (Schema::hasColumn('stock_levels', 'on_hand')) {
+                            return (float) ($record->on_hand ?? 0);
+                        }
+                        if (Schema::hasColumn('stock_levels', 'quantity')) {
+                            return (float) ($record->quantity ?? 0);
+                        }
+                        return (float) ($record->qty ?? 0);
+                    })
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 3))
                     ->sortable(),
 
+                // Reserved
                 Tables\Columns\TextColumn::make('reserved')
                     ->label('Reserved')
-                    ->numeric(3)
+                    ->state(fn($record) => (float) ($record->reserved ?? 0))
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 3))
                     ->sortable(),
 
+                // Available = on_hand - reserved
                 Tables\Columns\TextColumn::make('available')
                     ->label('Available')
-                    ->numeric(3)
+                    ->state(function ($record) {
+                        if (Schema::hasColumn('stock_levels', 'on_hand')) {
+                            $qty = (float) ($record->on_hand ?? 0);
+                        } elseif (Schema::hasColumn('stock_levels', 'quantity')) {
+                            $qty = (float) ($record->quantity ?? 0);
+                        } else {
+                            $qty = (float) ($record->qty ?? 0);
+                        }
+
+                        $reserved = (float) ($record->reserved ?? 0);
+                        return $qty - $reserved;
+                    })
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 3))
                     ->badge()
-                    ->color(fn($state) => $state <= 0 ? 'danger' : ($state < 50 ? 'warning' : 'success'))
+                    ->color(
+                        fn($state) =>
+                        $state <= 0 ? 'danger'
+                            : ($state < 50 ? 'warning' : 'success')
+                    )
                     ->sortable(),
             ])
             ->filters([
-                // 🔹 Optional branch filter
-                Tables\Filters\Filter::make('branch_id')
+                Tables\Filters\SelectFilter::make('branch_id')
                     ->label('Branch')
-                    ->form([
-                        \Filament\Forms\Components\Select::make('id')
-                            ->options(\App\Models\Branch::orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->placeholder('All'),
-                    ])
-                    ->query(function (Builder $q, array $data) {
-                        return empty($data['id'])
-                            ? $q
-                            : $q->where('stock_levels.branch_id', (int) $data['id']);
-                    })
-                    ->indicateUsing(function (array $data) {
-                        if (empty($data['id'])) return null;
-                        $name = \App\Models\Branch::whereKey($data['id'])->value('name');
-                        return $name ? ["Branch: $name"] : null;
-                    }),
+                    ->relationship('branch', 'name'),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('exportCsv')
@@ -129,13 +181,23 @@ class LowStockResource extends BaseResource
                     ->action(function ($livewire) {
                         $filters = $livewire->getTableFiltersForm()->getState();
 
-                        $branchId  = $filters['branch_id']['id'] ?? null;
+                        // branch_id filter state can be:
+                        // - null
+                        // - int (simple filter)
+                        // - ['value' => int] (Filament v3 default)
+                        $branchFilter = $filters['branch_id'] ?? null;
+                        if (is_array($branchFilter)) {
+                            $branchId = $branchFilter['value'] ?? null;
+                        } else {
+                            $branchId = $branchFilter;
+                        }
+
+                        // Use your default threshold (50 or whatever you want)
                         $threshold = 50;
 
                         $csv = app(\App\Services\ReportService::class)
-                            ->lowStockCsv($branchId, $threshold);
+                            ->lowStockCsv($branchId ? (int) $branchId : null, $threshold);
 
-                        //  Instead of returning response(), trigger download properly
                         $fileName = 'low_stock_' . now()->format('Ymd_His') . '.csv';
                         $path = storage_path("app/$fileName");
                         file_put_contents($path, $csv);

@@ -17,55 +17,40 @@ use Illuminate\Database\Eloquent\Builder;
 class StockCountResource extends BaseResource
 {
     protected static ?string $model = StockCount::class;
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationGroup = 'Operations';
-    protected static ?int    $navigationSort = 30;
+    protected static ?int    $navigationSort  = 30;
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('Super Admin') ?? false;
+        $u = auth()->user();
+        // Only Super Admin can see this by default (warehouse control)
+        return $u?->hasAnyRole(['Super Admin']) ?? false;
     }
+
+    public static function canCreate(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['Super Admin']) ?? false;
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         return static::canViewAny();
     }
-    public static function canCreate(): bool
-    {
-        return auth()->user()?->hasRole('Super Admin') ?? false;
-    }
-    public static function canEdit($record): bool
-    {
-        return auth()->user()?->hasRole('Super Admin') ?? false;
-    }
-    public static function canDelete($record): bool
-    {
-        return auth()->user()?->hasRole('Super Admin') ?? false;
-    }
-    public static function canDeleteAny(): bool
-    {
-        return auth()->user()?->hasRole('Super Admin') ?? false;
-    }
 
     public static function form(Form $form): Form
     {
-        $u = auth()->user();
-        $isAdmin = $u?->hasRole('Admin') ?? false;
+        $u       = auth()->user();
+        $isSA    = $u?->hasRole('Super Admin') ?? false;
 
         return $form->schema([
             Select::make('branch_id')
                 ->label('Branch')
-                ->relationship(
-                    'branch',
-                    'name',
-                    modifyQueryUsing: function (Builder $q) use ($u, $isAdmin) {
-                        if ($isAdmin && $u?->branch_id) {
-                            $q->whereKey($u->branch_id);
-                        }
-                    }
-                )
-                ->default($isAdmin ? $u?->branch_id : null)
+                ->relationship('branch', 'name')
                 ->required()
-                ->disabled($isAdmin),
+                ->default($u?->branch_id)
+                ->disabled(!$isSA),
 
             Repeater::make('items')
                 ->relationship('items')
@@ -73,14 +58,17 @@ class StockCountResource extends BaseResource
                     Select::make('product_id')
                         ->relationship('product', 'name')
                         ->required()
+                        ->searchable()
+                        ->preload()
                         ->columnSpan(2),
 
                     Select::make('unit_id')
                         ->relationship('unit', 'name')
                         ->required()
+                        ->searchable()
+                        ->preload()
                         ->columnSpan(1),
 
-                    // 👇 Make this match your DB column (qty_counted).
                     TextInput::make('qty_counted')
                         ->label('Qty counted')
                         ->numeric()
@@ -101,7 +89,7 @@ class StockCountResource extends BaseResource
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
                 Tables\Columns\TextColumn::make('branch.name')->label('Branch')->searchable(),
-                Tables\Columns\TextColumn::make('status')->badge(),
+                Tables\Columns\BadgeColumn::make('status'),
                 Tables\Columns\TextColumn::make('created_at')->since(),
             ])
             ->actions([
@@ -117,20 +105,23 @@ class StockCountResource extends BaseResource
                     ->action(function (StockCount $record, Action $action) {
                         try {
                             app(\App\Services\StockCountService::class)->post($record->id, auth()->id());
-                            // Refresh UI so status flips to POSTED immediately
+
+                            // refresh UI
                             $record->refresh();
                             $action->getLivewire()->dispatch('refreshTable');
 
                             \Filament\Notifications\Notification::make()
                                 ->title('Stock Count posted')
                                 ->body('Adjustment created from counted variance.')
-                                ->success()->send();
+                                ->success()
+                                ->send();
                         } catch (\Throwable $e) {
                             report($e);
                             \Filament\Notifications\Notification::make()
                                 ->title('Post failed')
                                 ->body($e->getMessage())
-                                ->danger()->send();
+                                ->danger()
+                                ->send();
                         }
                     }),
 
@@ -140,9 +131,10 @@ class StockCountResource extends BaseResource
 
     public static function getEloquentQuery(): Builder
     {
-        $q = parent::getEloquentQuery();
+        $q = parent::getEloquentQuery()->with('branch');
         $u = auth()->user();
 
+        // If later you let Admin do stock count for their branch, scope here.
         if ($u?->hasRole('Admin') && $u?->branch_id) {
             return $q->where('branch_id', $u->branch_id);
         }

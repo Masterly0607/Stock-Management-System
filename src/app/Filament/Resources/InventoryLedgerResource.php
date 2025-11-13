@@ -185,17 +185,39 @@ class InventoryLedgerResource extends BaseResource
             ->bulkActions([]);
     }
 
+
+
     public static function getEloquentQuery(): Builder
     {
-        $q = parent::getEloquentQuery()->with(['branch', 'product', 'unit', 'user']);
-        $u = auth()->user();
+        $query = parent::getEloquentQuery()
+            ->with(['branch', 'product', 'unit']);
 
-        if ($u?->hasRole('Admin') && $u?->branch_id) {
-            return $q->where('branch_id', $u->branch_id);
+        $user = auth()->user();
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
         }
 
-        return $q;
+        if ($user->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        $branch = $user->relationLoaded('branch')
+            ? $user->branch
+            : $user->branch()->first();
+
+        if ($user->hasRole('Admin') && $branch && $branch->province_id) {
+            return $query->whereHas('branch', function (Builder $b) use ($branch) {
+                $b->where('province_id', $branch->province_id);
+            });
+        }
+
+        if ($user->hasRole('Distributor') && $user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
+
 
     public static function getPages(): array
     {
