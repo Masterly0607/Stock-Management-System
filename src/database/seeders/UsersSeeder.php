@@ -37,7 +37,7 @@ class UsersSeeder extends Seeder
 
         // 2) Admin Phnom Penh at province branch
         $admin = User::updateOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => 'ppadmin@example.com'],
             [
                 'name'      => 'Admin Phnom Penh',
                 'password'  => Hash::make('1234'),

@@ -37,14 +37,9 @@ class PaymentResource extends BaseResource
     public static function canCreate(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['Super Admin', 'Admin']) ?? false;
+        return $u?->hasAnyRole(['Admin']) ?? false;
     }
 
-    /** Optional: only SA can edit existing payments */
-    public static function canEdit($record): bool
-    {
-        return auth()->user()?->hasRole('Super Admin') ?? false;
-    }
 
     public static function form(Form $form): Form
     {
@@ -156,8 +151,7 @@ class PaymentResource extends BaseResource
             ->filters([])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole('Super Admin') ?? false),
+
             ])
             ->bulkActions([]);
     }
